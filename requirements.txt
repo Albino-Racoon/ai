@@ -1,0 +1,9 @@
+torch
+pylzma
+tokenizers
+tqdm
+transformers
+fastapi
+requests
+uvicorn
+pydantic
