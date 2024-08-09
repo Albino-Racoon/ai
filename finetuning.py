@@ -3,18 +3,15 @@ import sys
 import json
 import requests
 import PyPDF2
-from gradientai import Gradient
+import shutil
 import random
+from gradientai import Gradient
 
 def download_file(url, destination):
-    if url.startswith('http://') or url.startswith('https://'):
-        response = requests.get(url)
-        with open(destination, 'wb') as f:
-            f.write(response.content)
-        print(f"Downloaded file from {url} to {destination}.")
-    else:
-        raise ValueError(f"Invalid input: {url}. Must be a valid URL.")
-    
+    response = requests.get(url)
+    with open(destination, 'wb') as f:
+        f.write(response.content)
+    print(f"Downloaded file from {url} to {destination}.")
     return destination
 
 def main(temp_file_path):
@@ -69,7 +66,7 @@ def main(temp_file_path):
         "accept": "application/json",
         "x-gradient-workspace-id": "86abdbb7-ca5f-4f71-9882-01970e111de7_workspace",
         "content-type": "application/json",
-        "authorization": "Bearer zHkm0nTvAVXsUobrgw4UelOfRQsKRCl2"
+        "authorization": f"Bearer {os.getenv('GRADIENT_ACCESS_TOKEN')}"
     }
 
     samples = []
