@@ -4,6 +4,7 @@ tokenizers
 tqdm
 transformers
 fastapi
+PyPDF2
 requests
 uvicorn
 pydantic
