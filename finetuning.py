@@ -10,16 +10,21 @@ import random
 import shutil
 
 
-
-
 def download_file(url, destination):
-    if not url.startswith('http://') and not url.startswith('https://'):
-        raise ValueError(f"Invalid URL: {url}. A valid scheme (http or https) is required.")
+    # Check if the input is a URL or a local file path
+    if os.path.isfile(url):
+        # If the input is a local file path, copy it directly
+        shutil.copy(url, destination)
+        print(f"Copied local file from {url} to {destination}.")
+    elif url.startswith('http://') or url.startswith('https://'):
+        # If it's a URL, download the file
+        response = requests.get(url)
+        with open(destination, 'wb') as f:
+            f.write(response.content)
+        print(f"Downloaded file from {url} to {destination}.")
+    else:
+        raise ValueError(f"Invalid input: {url}. Must be a valid URL or a file path.")
     
-    response = requests.get(url)
-    with open(destination, 'wb') as f:
-        f.write(response.content)
-    print(f"Downloaded file from {url} to {destination}.")
     return destination
 
 
