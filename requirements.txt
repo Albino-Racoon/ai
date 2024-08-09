@@ -9,3 +9,4 @@ requests
 gradientai
 uvicorn
 pydantic
+shutil
