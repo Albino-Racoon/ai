@@ -26,8 +26,9 @@ async def process_files(payload: FilesPayload):
     # Download files from URLs and save to disk
     for datoteka in datoteke:
         file_path = os.path.join(temp_files_path, datoteka.ime)
+        response = requests.get(datoteka.url)
         with open(file_path, 'wb') as f:
-            f.write(requests.get(datoteka.url).content)
+            f.write(response.content)
         print(f"Datoteka {datoteka.ime} uspešno shranjena na {file_path}.")
 
     # Save file information to a temporary JSON file
@@ -35,7 +36,7 @@ async def process_files(payload: FilesPayload):
         json.dump([{"ime": d.ime, "url": os.path.join(temp_files_path, d.ime)} for d in datoteke], f)
     
     # Call the finetuning script and capture its output
-    result = os.system(f"python finetuning.py {temp_data_file_path}")
+    result = os.system(f"python3 finetuning.py {temp_data_file_path}")
 
     # Additional processing logic
     if result == 0:
