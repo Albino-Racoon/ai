@@ -34,7 +34,17 @@ async def process_files(payload: FilesPayload):
     with open(temp_data_file_path, 'w', encoding='utf-8') as f:
         json.dump([{"ime": d.ime, "url": os.path.join(temp_files_path, d.ime)} for d in datoteke], f)
     
-    # Call the finetuning script
-    os.system(f"python finetuning.py {temp_data_file_path}")
+    # Call the finetuning script and capture its output
+    result = os.system(f"python finetuning.py {temp_data_file_path}")
+
+    # Additional processing logic
+    if result == 0:
+        print("Fine-tuning completed successfully.")
+        with open(temp_data_file_path, 'r', encoding='utf-8') as f:
+            processed_data = json.load(f)
+        # Process the data further if needed
+        print(f"Processed data: {processed_data}")
+    else:
+        print("Error occurred during fine-tuning.")
 
     return {"status": "success", "message": "Datoteke so bile obdelane."}
