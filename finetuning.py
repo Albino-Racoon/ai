@@ -3,31 +3,19 @@ import sys
 import json
 import requests
 import PyPDF2
-import base64
-import io
 from gradientai import Gradient
 import random
-import shutil
-
 
 def download_file(url, destination):
-    # Check if the input is a URL or a local file path
-    if os.path.isfile(url):
-        # If the input is a local file path, copy it directly
-        shutil.copy(url, destination)
-        print(f"Copied local file from {url} to {destination}.")
-    elif url.startswith('http://') or url.startswith('https://'):
-        # If it's a URL, download the file
+    if url.startswith('http://') or url.startswith('https://'):
         response = requests.get(url)
         with open(destination, 'wb') as f:
             f.write(response.content)
         print(f"Downloaded file from {url} to {destination}.")
     else:
-        raise ValueError(f"Invalid input: {url}. Must be a valid URL or a file path.")
+        raise ValueError(f"Invalid input: {url}. Must be a valid URL.")
     
     return destination
-
-
 
 def main(temp_file_path):
     print("python laufa")
