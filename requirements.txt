@@ -6,5 +6,6 @@ transformers
 fastapi
 PyPDF2
 requests
+gradientai
 uvicorn
 pydantic
