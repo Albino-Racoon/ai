@@ -7,14 +7,25 @@ import base64
 import io
 from gradientai import Gradient
 import random
+import shutil
+
 
 def download_file(url, destination):
-    if not url.startswith('http://') and not url.startswith('https://'):
-        raise ValueError(f"Invalid URL: {url}. A valid scheme (http or https) is required.")
+    # Check if the URL is a local file path
+    if os.path.isfile(url):
+        # If it's a local file, copy it directly to the destination
+        shutil.copy(url, destination)
+        print(f"Copied local file from {url} to {destination}.")
+    else:
+        # If it's a valid URL, download it
+        if not url.startswith('http://') and not url.startswith('https://'):
+            raise ValueError(f"Invalid URL: {url}. A valid scheme (http or https) is required.")
+        
+        response = requests.get(url)
+        with open(destination, 'wb') as f:
+            f.write(response.content)
+        print(f"Downloaded file from {url} to {destination}.")
     
-    response = requests.get(url)
-    with open(destination, 'wb') as f:
-        f.write(response.content)
     return destination
 
 
