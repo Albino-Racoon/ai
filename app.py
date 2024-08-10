@@ -61,6 +61,8 @@ async def process_files(payload: FilesPayload):
         # Call the fine-tuning script
         try:
             result = os.system(f"python3 finetuning.py {temp_data_file_path}")
+            model_info_file_path = os.path.join(temp_files_path, 'model_info.json')
+    
             if result != 0:
                 raise HTTPException(status_code=500, detail="Fine-tuning script failed")
         except Exception as e:
