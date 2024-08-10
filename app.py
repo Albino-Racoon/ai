@@ -9,7 +9,6 @@ import shutil
 
 app = FastAPI()
 
-
 class FileData(BaseModel):
     ime: str
     url: str
@@ -68,7 +67,15 @@ async def process_files(payload: FilesPayload):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error running fine-tuning script: {e}")
 
-        return {"status": "success", "message": "Files processed successfully."}
+        # Extract the model adapter ID from model_info.json
+        try:
+            with open(model_info_file_path, 'r', encoding='utf-8') as f:
+                model_info = json.load(f)
+                model_adapter_id = model_info.get('model_adapter_id')
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error reading model_info.json: {e}")
+
+        return {"status": "success", "message": "Files processed successfully.", "modelAdapterId": model_adapter_id}
     
     except HTTPException as e:
         print(f"HTTP Exception: {e.detail}")
