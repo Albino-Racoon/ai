@@ -5,6 +5,7 @@ import requests
 import PyPDF2
 import random
 import shutil
+import datetime
 from gradientai import Gradient
 
 def download_file(url, destination):
@@ -132,7 +133,8 @@ def main(temp_file_path):
             # Save the model ID to a JSON file
             model_info = {
                 "model_adapter_id": new_model_adapter.id,
-                "creation_time": str(new_model_adapter.creation_time)
+                "creation_time": str(datetime.datetime.now())
+
             }
             with open("model_info.json", "w") as f:
                 json.dump(model_info, f)
