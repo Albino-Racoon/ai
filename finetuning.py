@@ -8,17 +8,25 @@ import shutil
 from gradientai import Gradient
 
 def download_file(url, destination):
+    # Check if the input is a URL or a local file path
     if os.path.isfile(url):
-        shutil.copy(url, destination)
-        print(f"Copied local file from {url} to {destination}.")
+        if os.path.abspath(url) == os.path.abspath(destination):
+            print(f"Source and destination are the same for {url}. Skipping copy.")
+        else:
+            # If the input is a local file path, copy it directly
+            shutil.copy(url, destination)
+            print(f"Copied local file from {url} to {destination}.")
     elif url.startswith('http://') or url.startswith('https://'):
+        # If it's a URL, download the file
         response = requests.get(url)
         with open(destination, 'wb') as f:
             f.write(response.content)
         print(f"Downloaded file from {url} to {destination}.")
     else:
         raise ValueError(f"Invalid input: {url}. Must be a valid URL or a file path.")
+    
     return destination
+
 
 def main(temp_file_path):
     print("Finetuning script started")
