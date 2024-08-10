@@ -9,6 +9,7 @@ import shutil
 
 app = FastAPI()
 
+
 class FileData(BaseModel):
     ime: str
     url: str
