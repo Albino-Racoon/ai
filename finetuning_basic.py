@@ -5,6 +5,7 @@ import requests
 import PyPDF2
 import base64
 import io
+import docx
 from gradientai import Gradient
 import random
 
@@ -26,17 +27,41 @@ def main(temp_file_path):
     
     print(f"Prejeto {len(datoteke)} datotek.")
 
-    def preberi_pdf(file_path):
+    def preberi_datoteko(file_path):
         try:
+        # Determine the file extension
+            ext = os.path.splitext(file_path)[-1].lower()
             print(f"Reading file: {file_path}")
-            with open(file_path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
+        
+            if ext == ".pdf":
+            # Reading PDF file
+                with open(file_path, 'rb') as f:
+                    reader = PyPDF2.PdfReader(f)
+                    vsebina = ""
+                    for stran in reader.pages:
+                        vsebina += stran.extract_text()
+                    return vsebina
+        
+            elif ext == ".docx":
+            # Reading DOCX file
+                doc = docx.Document(file_path)
                 vsebina = ""
-                for stran in reader.pages:
-                    vsebina += stran.extract_text()
+                for para in doc.paragraphs:
+                    vsebina += para.text + "\n"
                 return vsebina
+        
+            elif ext == ".txt":
+            # Reading TXT file
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    vsebina = f.read()
+                return vsebina
+        
+            else:
+                print(f"Nepodprta vrsta datoteke: {ext}")
+                return ""
+
         except Exception as e:
-            print(f"Napaka pri branju PDF datoteke: {e}")
+            print(f"Napaka pri branju datoteke: {e}")
             return ""
 
     def parse_instruction_response(inputs):

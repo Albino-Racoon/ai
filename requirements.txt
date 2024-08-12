@@ -9,4 +9,4 @@ requests
 gradientai
 uvicorn
 pydantic
-
+python-docx
