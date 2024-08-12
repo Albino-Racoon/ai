@@ -8,6 +8,9 @@ import io
 import docx
 from gradientai import Gradient
 import random
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def download_file(url, output_path):
     response = requests.get(url)
@@ -18,8 +21,8 @@ def download_file(url, output_path):
 def main(temp_file_path):
     print("python laufa")
     # Nastavitve okoljskih spremenljivk
-    os.environ['GRADIENT_ACCESS_TOKEN'] = "zHkm0nTvAVXsUobrgw4UelOfRQsKRCl2"
-    os.environ['GRADIENT_WORKSPACE_ID'] = "86abdbb7-ca5f-4f71-9882-01970e111de7_workspace"
+    os.environ['GRADIENT_ACCESS_TOKEN'] = os.getenv('GRADIENT_ACCESS_TOKEN')
+    os.environ['GRADIENT_WORKSPACE_ID'] = os.getenv('GRADIENT_WORKSPACE_ID')
 
     print("Nalaganje podatkov...")  # Debugging print
     with open(temp_file_path, 'r', encoding='utf-8') as file:
