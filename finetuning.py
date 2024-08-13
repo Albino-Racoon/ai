@@ -4,7 +4,6 @@ import json
 import openai
 import requests
 import shutil
-import random
 import docx
 from PIL import Image
 import pytesseract
