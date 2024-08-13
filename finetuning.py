@@ -5,12 +5,18 @@ import openai
 import requests
 import shutil
 import docx
-from PIL import Image
-import pytesseract
 from PyPDF2 import PdfReader
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file
+load_dotenv()
+
+ACCESS_CORS = os.getenv('ACCESS_CORS')
+FIREBASE_API_KEY = os.getenv('EXPRESS_APP_API_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Set your OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
 
 # Define file processing functions
 def extract_text_from_txt(file_path):
@@ -27,18 +33,6 @@ def extract_text_from_pdf(file_path):
     for page in reader.pages:
         text += page.extract_text()
     return text
-
-def extract_text_from_image(file_path):
-    try:
-        image = Image.open(file_path)
-        text = pytesseract.image_to_string(image)
-        return text
-    except pytesseract.TesseractNotFoundError:
-        print("Tesseract is not installed or not found in PATH.")
-        return ""
-    except Exception as e:
-        print(f"An error occurred while processing the image: {e}")
-        return ""
 
 def download_file(url, destination):
     if os.path.isfile(url):
@@ -83,8 +77,6 @@ def main(temp_file_path):
             vsebina_datotek.append(extract_text_from_docx(file_path))
         elif ext == '.pdf':
             vsebina_datotek.append(extract_text_from_pdf(file_path))
-        elif ext in ['.png', '.jpg', '.jpeg']:
-            vsebina_datotek.append(extract_text_from_image(file_path))
         else:
             print(f"Unsupported file type: {ext}")
             continue
