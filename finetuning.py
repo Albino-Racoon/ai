@@ -1,24 +1,47 @@
 import os
 import sys
 import json
+import openai
 import requests
-import PyPDF2
-import random
 import shutil
-import datetime
-from gradientai import Gradient
+import random
+import docx
+from PIL import Image
+import pytesseract
+from PyPDF2 import PdfReader
+
+# Set your OpenAI API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Define file processing functions
+def extract_text_from_txt(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+def extract_text_from_docx(file_path):
+    doc = docx.Document(file_path)
+    return '\n'.join([para.text for para in doc.paragraphs])
+
+def extract_text_from_pdf(file_path):
+    reader = PdfReader(file_path)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
+
+def extract_text_from_image(file_path):
+    image = Image.open(file_path)
+    text = pytesseract.image_to_string(image)
+    return text
 
 def download_file(url, destination):
-    # Check if the input is a URL or a local file path
     if os.path.isfile(url):
         if os.path.abspath(url) == os.path.abspath(destination):
             print(f"Source and destination are the same for {url}. Skipping copy.")
         else:
-            # If the input is a local file path, copy it directly
             shutil.copy(url, destination)
             print(f"Copied local file from {url} to {destination}.")
     elif url.startswith('http://') or url.startswith('https://'):
-        # If it's a URL, download the file
         response = requests.get(url)
         with open(destination, 'wb') as f:
             f.write(response.content)
@@ -28,11 +51,9 @@ def download_file(url, destination):
     
     return destination
 
-
+# Main function
 def main(temp_file_path):
-    print("Finetuning script started")
-    os.environ['GRADIENT_ACCESS_TOKEN'] = "zHkm0nTvAVXsUobrgw4UelOfRQsKRCl2"
-    os.environ['GRADIENT_WORKSPACE_ID'] = "86abdbb7-ca5f-4f71-9882-01970e111de7_workspace"
+    print("Fine-tuning script started")
 
     print("Loading data...")
     with open(temp_file_path, 'r', encoding='utf-8') as file:
@@ -40,105 +61,91 @@ def main(temp_file_path):
     
     print(f"Received {len(datoteke)} files.")
 
-    def preberi_pdf(file_path):
-        try:
-            print(f"Reading file: {file_path}")
-            with open(file_path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
-                vsebina = "".join([page.extract_text() for page in reader.pages])
-                return vsebina
-        except Exception as e:
-            print(f"Error reading PDF file: {e}")
-            return ""
-
-    def parse_instruction_response(inputs):
-        parts = inputs.split("#### Response:")
-        instruction = parts[0].strip().replace("### Instruction:", "").strip()
-        response = parts[1].strip() if len(parts) > 1 else ""
-        return instruction, response
-
-    def generate_evaluation_prompt(actual_response, predicted_response):
-        return f"Given the expected response: '{actual_response}', and the generated response: '{predicted_response}', does the generated response accurately capture the key information? Yes or No."
-
-    def evaluate_response_with_model(model_adapter, prompt):
-        evaluation_result = model_adapter.complete(query=prompt, max_generated_token_count=100).generated_output
-        return "Yes" in evaluation_result
-
-    print("Reading file content...")
     temp_dir = "temp_files"
-    downloaded_files = [download_file(datoteka['url'], os.path.join(temp_dir, datoteka['ime'])) for datoteka in datoteke]
-    vsebina_datotek = [preberi_pdf(file_path) for file_path in downloaded_files]
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
 
+    # Process files and extract content
+    vsebina_datotek = []
+    for datoteka in datoteke:
+        file_path = download_file(datoteka['url'], os.path.join(temp_dir, datoteka['ime']))
+        ext = os.path.splitext(file_path)[1].lower()
+
+        if ext == '.txt':
+            vsebina_datotek.append(extract_text_from_txt(file_path))
+        elif ext == '.docx':
+            vsebina_datotek.append(extract_text_from_docx(file_path))
+        elif ext == '.pdf':
+            vsebina_datotek.append(extract_text_from_pdf(file_path))
+        elif ext in ['.png', '.jpg', '.jpeg']:
+            vsebina_datotek.append(extract_text_from_image(file_path))
+        else:
+            print(f"Unsupported file type: {ext}")
+            continue
+
+    # Prepare content for fine-tuning
     celotna_vsebina = "\n".join(vsebina_datotek)
     deli_vsebine = [celotna_vsebina[i:i+1000] for i in range(0, len(celotna_vsebina), 1000)]
 
-    url = "https://api.gradient.ai/api/models/399e5ea8-21ba-4558-89b3-d962f7efd0db_model_adapter/complete"
-    headers = {
-        "accept": "application/json",
-        "x-gradient-workspace-id": os.environ['GRADIENT_WORKSPACE_ID'],
-        "content-type": "application/json",
-        "authorization": f"Bearer {os.environ['GRADIENT_ACCESS_TOKEN']}"
-    }
-
     samples = []
-
-    print("Sending requests to Gradient API...")
     for del_vsebine in deli_vsebine:
-        payload = {"autoTemplate": True, "query": del_vsebine, "maxGeneratedTokenCount": 511}
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            generated_output = data.get("generatedOutput", "")
-            questions_answers = generated_output.split("\n\n")
-            for qa in questions_answers:
-                if ':' in qa:
-                    question, answer = qa.split(':', 1)
-                    if question.strip() and answer.strip():
-                        sample = {"inputs": f"### Instruction: {question.strip()}\n#### Response: {answer.strip()}"}
-                        samples.append(sample)
-        else:
-            print(f"Request error: {response.status_code}, {response.text}")
+        response = openai.Completion.create(
+            model="davinci",
+            prompt=del_vsebine,
+            max_tokens=512,
+            temperature=0.7
+        )
+        generated_output = response['choices'][0]['text']
+        questions_answers = generated_output.split("\n\n")
+        for qa in questions_answers:
+            if ':' in qa:
+                question, answer = qa.split(':', 1)
+                if question.strip() and answer.strip():
+                    samples.append({
+                        "prompt": f"### Instruction: {question.strip()}\n\n###\n\n",
+                        "completion": f" {answer.strip()}\n"
+                    })
 
     print(f"Generated {len(samples)} samples.")
 
+    # Save samples to JSONL file
     if samples:
-        with Gradient() as gradient:
-            base_model = gradient.get_base_model(base_model_slug="llama2-7b-chat")
-            new_model_adapter = base_model.create_model_adapter(name="fine_tuned_model")
-            print(f"Model adapter created with ID: {new_model_adapter.id}")
+        with open('fine_tune_data.jsonl', 'w') as f:
+            for item in samples:
+                json.dump(item, f)
+                f.write('\n')
+        print(f"Data for fine-tuning saved to 'fine_tune_data.jsonl'")
 
-            random_sample = random.choice(samples)
-            instruction, actual_response = parse_instruction_response(random_sample["inputs"])
-            sample_query = f"{instruction}\n\n#### Response:"
-            print(f"Sample Query: {sample_query}")
+        # Fine-tune the model
+        print("Starting fine-tuning process...")
+        file_response = openai.File.create(
+            file=open("fine_tune_data.jsonl"),
+            purpose='fine-tune'
+        )
 
-            completion_before = new_model_adapter.complete(query=sample_query, max_generated_token_count=100).generated_output
-            print(f"Generated (before fine-tuning): {completion_before}")
+        file_id = file_response['id']
+        print(f"Uploaded file ID: {file_id}")
 
-            num_epochs = 3
-            success = False
-            count = 0
-            while count < num_epochs and not success:
-                print(f"Fine-tuning model, iteration {count + 1}")
-                new_model_adapter.fine_tune(samples=samples)
+        fine_tune_response = openai.FineTune.create(
+            training_file=file_id,
+            model="davinci"
+        )
+        print(f"Fine-tune job started: {fine_tune_response['id']}")
 
-                completion_after = new_model_adapter.complete(query=sample_query, max_generated_token_count=100).generated_output
-                print(f"Generated (after fine-tuning iteration {count + 1}): {completion_after}")
+        # Monitor the fine-tuning process
+        fine_tune_id = fine_tune_response['id']
+        status = None
+        while status not in ["succeeded", "failed"]:
+            fine_tune_status = openai.FineTune.retrieve(id=fine_tune_id)
+            status = fine_tune_status['status']
+            print(f"Status: {status}")
+            if status in ["succeeded", "failed"]:
+                break
 
-                evaluation_prompt = generate_evaluation_prompt(actual_response, completion_after)
-                success = evaluate_response_with_model(base_model, evaluation_prompt)
-                print(f"Evaluation successful: {'Yes' if success else 'No'}")
-                count += 1
-
-            # Save the model ID to a JSON file
-            model_info = {
-                "model_adapter_id": new_model_adapter.id,
-                "creation_time": str(datetime.datetime.now())
-
-            }
-            with open("model_info.json", "w") as f:
-                json.dump(model_info, f)
-            print(f"Model Adapter ID: {new_model_adapter.id} saved to model_info.json")
+        if status == "succeeded":
+            print(f"Fine-tuning succeeded. Model ID: {fine_tune_status['fine_tuned_model']}")
+        else:
+            print("Fine-tuning failed.")
     else:
         print("No samples were generated for fine-tuning.")
 

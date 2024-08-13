@@ -1,12 +1,8 @@
-torch
-pylzma
-tokenizers
-tqdm
-transformers
 fastapi
-PyPDF2
-requests
-gradientai
 uvicorn
+requests
 pydantic
 python-docx
+pillow
+pytesseract
+PyPDF2

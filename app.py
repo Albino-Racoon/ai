@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import requests
 from fastapi import FastAPI, HTTPException
@@ -85,7 +84,5 @@ async def process_files(payload: FilesPayload):
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        process_files(sys.argv[1])
-    else:
-        print("Potrebno je podati pot do začasne datoteke.")
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
