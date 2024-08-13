@@ -29,9 +29,16 @@ def extract_text_from_pdf(file_path):
     return text
 
 def extract_text_from_image(file_path):
-    image = Image.open(file_path)
-    text = pytesseract.image_to_string(image)
-    return text
+    try:
+        image = Image.open(file_path)
+        text = pytesseract.image_to_string(image)
+        return text
+    except pytesseract.TesseractNotFoundError:
+        print("Tesseract is not installed or not found in PATH.")
+        return ""
+    except Exception as e:
+        print(f"An error occurred while processing the image: {e}")
+        return ""
 
 def download_file(url, destination):
     if os.path.isfile(url):
