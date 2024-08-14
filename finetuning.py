@@ -92,13 +92,16 @@ def main(temp_file_path):
 
     samples = []
     for del_vsebine in deli_vsebine:
-        response = openai.Completion.create(
-            model="text-davinci-003",  # Update to a supported model
-            prompt=del_vsebine,
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Updated to a supported model
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": del_vsebine}
+            ],
             max_tokens=512,
             temperature=0.7
         )
-        generated_output = response['choices'][0]['text']
+        generated_output = response['choices'][0]['message']['content']
         questions_answers = generated_output.split("\n\n")
         for qa in questions_answers:
             if ':' in qa:
@@ -129,9 +132,14 @@ def main(temp_file_path):
         file_id = file_response['id']
         print(f"Uploaded file ID: {file_id}")
 
+        # Choose a model that supports fine-tuning, for example, `gpt-3.5-turbo-1106` or `davinci-002`
         fine_tune_response = openai.FineTune.create(
             training_file=file_id,
-            model="davinci"  # Make sure this is a model that supports fine-tuning and is not deprecated
+            model="gpt-3.5-turbo-1106",  # Use a model that supports fine-tuning
+            suffix="my-experiment",
+            n_epochs=4,  # Adjust based on your dataset size
+            learning_rate_multiplier=0.1,  # Auto-tune this or use a default
+            batch_size="auto"  # Auto-batch size for optimal training
         )
         print(f"Fine-tune job started: {fine_tune_response['id']}")
 
