@@ -78,8 +78,13 @@ def main(temp_file_path):
         elif ext == '.pdf':
             vsebina_datotek.append(extract_text_from_pdf(file_path))
         else:
-            print(f"Unsupported file type: {ext}")
+            print(f"Skipping unsupported file type: {ext}")
             continue
+
+    # Check if there is any content to fine-tune
+    if not vsebina_datotek:
+        print("No valid files to process.")
+        return
 
     # Prepare content for fine-tuning
     celotna_vsebina = "\n".join(vsebina_datotek)
@@ -88,7 +93,7 @@ def main(temp_file_path):
     samples = []
     for del_vsebine in deli_vsebine:
         response = openai.Completion.create(
-            model="davinci",
+            model="text-davinci-003",  # Update to a supported model
             prompt=del_vsebine,
             max_tokens=512,
             temperature=0.7
@@ -126,7 +131,7 @@ def main(temp_file_path):
 
         fine_tune_response = openai.FineTune.create(
             training_file=file_id,
-            model="davinci"
+            model="davinci"  # Make sure this is a model that supports fine-tuning and is not deprecated
         )
         print(f"Fine-tune job started: {fine_tune_response['id']}")
 
