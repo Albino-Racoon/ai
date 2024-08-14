@@ -122,43 +122,38 @@ def main(temp_file_path):
                 f.write('\n')
         print(f"Data for fine-tuning saved to 'fine_tune_data.jsonl'")
 
-        # Fine-tune the model
+        # Start the fine-tuning process (this section might need to be adjusted according to the latest API)
         print("Starting fine-tuning process...")
-        file_response = openai.File.create(
-            file=open("fine_tune_data.jsonl"),
-            purpose='fine-tune'
-        )
+        try:
+            fine_tune_response = openai.FineTune.create(
+                training_file=file_id,
+                model="gpt-3.5-turbo-1106",  # Use the latest model that supports fine-tuning
+                suffix="my-experiment",
+                n_epochs=4,  # Adjust based on your dataset size
+                learning_rate_multiplier=0.1,  # Auto-tune this or use a default
+                batch_size="auto"  # Auto-batch size for optimal training
+            )
+            print(f"Fine-tune job started: {fine_tune_response['id']}")
 
-        file_id = file_response['id']
-        print(f"Uploaded file ID: {file_id}")
+            # Monitor the fine-tuning process
+            fine_tune_id = fine_tune_response['id']
+            status = None
+            while status not in ["succeeded", "failed"]:
+                fine_tune_status = openai.FineTune.retrieve(id=fine_tune_id)
+                status = fine_tune_status['status']
+                print(f"Status: {status}")
+                if status in ["succeeded", "failed"]:
+                    break
 
-        # Choose a model that supports fine-tuning, for example, `gpt-3.5-turbo-1106` or `davinci-002`
-        fine_tune_response = openai.FineTune.create(
-            training_file=file_id,
-            model="gpt-3.5-turbo-1106",  # Use a model that supports fine-tuning
-            suffix="my-experiment",
-            n_epochs=4,  # Adjust based on your dataset size
-            learning_rate_multiplier=0.1,  # Auto-tune this or use a default
-            batch_size="auto"  # Auto-batch size for optimal training
-        )
-        print(f"Fine-tune job started: {fine_tune_response['id']}")
+            if status == "succeeded":
+                print(f"Fine-tuning succeeded. Model ID: {fine_tune_status['fine_tuned_model']}")
+            else:
+                print("Fine-tuning failed.")
 
-        # Monitor the fine-tuning process
-        fine_tune_id = fine_tune_response['id']
-        status = None
-        while status not in ["succeeded", "failed"]:
-            fine_tune_status = openai.FineTune.retrieve(id=fine_tune_id)
-            status = fine_tune_status['status']
-            print(f"Status: {status}")
-            if status in ["succeeded", "failed"]:
-                break
-
-        if status == "succeeded":
-            print(f"Fine-tuning succeeded. Model ID: {fine_tune_status['fine_tuned_model']}")
-        else:
-            print("Fine-tuning failed.")
-    else:
-        print("No samples were generated for fine-tuning.")
+        except openai.error.InvalidRequestError as e:
+            print(f"Error during fine-tuning: {e}")
+            print("Please check the OpenAI API documentation for the correct endpoint and model support.")
+            sys.exit(1)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
