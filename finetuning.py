@@ -122,7 +122,17 @@ def main(temp_file_path):
                 f.write('\n')
         print(f"Data for fine-tuning saved to 'fine_tune_data.jsonl'")
 
-        # Start the fine-tuning process (this section might need to be adjusted according to the latest API)
+        # Upload the file for fine-tuning and get the file ID
+        print("Uploading file for fine-tuning...")
+        file_response = openai.File.create(
+            file=open("fine_tune_data.jsonl", "rb"),
+            purpose='fine-tune'
+        )
+
+        file_id = file_response['id']
+        print(f"Uploaded file ID: {file_id}")
+
+        # Start the fine-tuning process
         print("Starting fine-tuning process...")
         try:
             fine_tune_response = openai.FineTune.create(
