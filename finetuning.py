@@ -135,7 +135,7 @@ def main(temp_file_path):
         # Start the fine-tuning process with the correct endpoint
         print("Starting fine-tuning process...")
         try:
-            fine_tune_response = openai.FineTuningJob.create(
+            fine_tune_response = openai.FineTune.create(
                 training_file=file_id,
                 model="gpt-3.5-turbo-1106",  # Use the latest model that supports fine-tuning
                 suffix="my-experiment",
@@ -149,7 +149,7 @@ def main(temp_file_path):
             fine_tune_id = fine_tune_response['id']
             status = None
             while status not in ["succeeded", "failed"]:
-                fine_tune_status = openai.FineTuningJob.retrieve(id=fine_tune_id)
+                fine_tune_status = openai.FineTune.retrieve(id=fine_tune_id)
                 status = fine_tune_status['status']
                 print(f"Status: {status}")
                 if status in ["succeeded", "failed"]:
