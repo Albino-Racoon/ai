@@ -12,10 +12,13 @@ import shutil
 from PyPDF2 import PdfReader
 from dotenv import load_dotenv
  
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-openai.api_key = OPENAI_API_KEY
-openai.api_key ="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"
+load_dotenv()
 
+# Get the API key from the environment
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+# Set the OpenAI API key
+openai.api_key = OPENAI_API_KEY
 import os
 import json
 import shutil
