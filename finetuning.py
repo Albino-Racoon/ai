@@ -14,6 +14,7 @@ from dotenv import load_dotenv
  
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
+openai.api_key ="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"
 
 import os
 import json
@@ -107,7 +108,7 @@ def get_fine_tuned_model_id(job_id):
 
 def main(temp_file_path):
     print("Fine-tuning script started")
-    temp_file_path = os.path.join(os.path.dirname(__file__), 'temp.json')
+
     print("Loading data...")
     with open(temp_file_path, 'r', encoding='utf-8') as file:
         datoteke = json.load(file)
