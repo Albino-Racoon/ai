@@ -11,11 +11,7 @@ from dotenv import load_dotenv
 # Load environment variables from the .env file
 load_dotenv()
 
-ACCESS_CORS = os.getenv('ACCESS_CORS')
-FIREBASE_API_KEY = os.getenv('EXPRESS_APP_API_KEY')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
-# Set your OpenAI API key
 openai.api_key = OPENAI_API_KEY
 
 # Define file processing functions
