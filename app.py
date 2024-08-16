@@ -3,6 +3,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
 import logging
+import json
+
+import os
 
 # Set up FastAPI
 app = FastAPI()
@@ -43,11 +46,19 @@ async def process_files(payload: FilesPayload):
 
         # Read model_info.json for the model_adapter_id
         model_info_file_path = 'model_info.json'
-        with open(model_info_file_path, 'r', encoding='utf-8') as f:
-            model_info = json.load(f)
-            model_adapter_id = model_info.get('model_adapter_id')
+        try:
+            with open(model_info_file_path, 'r', encoding='utf-8') as f:
+                model_info = json.load(f)
+                model_adapter_id = model_info.get('model_adapter_id')
+                if not model_adapter_id:
+                    raise ValueError("model_adapter_id not found in model_info.json")
+        except FileNotFoundError:
+            logging.error(f"model_info.json file not found.")
+            raise HTTPException(status_code=500, detail="model_info.json file not found.")
+        except ValueError as ve:
+            logging.error(f"Invalid data in model_info.json: {ve}")
+            raise HTTPException(status_code=500, detail=str(ve))
 
-        return {"status": "success", "modelAdapterId": model_adapter_id}
 
     except Exception as e:
         logging.error(f"Error processing files: {e}")
