@@ -1,72 +1,65 @@
-import subprocess
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List
-import logging
-import json
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi.responses import JSONResponse
+import shutil
 import os
+from finetuning import main, get_fine_tuned_model_id  # Assuming your original script is in a file named finetuning.py
 
-# Set up FastAPI
 app = FastAPI()
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG, filename='fastapi.log',
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
-class FileData(BaseModel):
-    ime: str
-    url: str
-
-class FilesPayload(BaseModel):
-    datoteke: List[FileData]
-
-@app.post("/process_files")
-async def process_files(payload: FilesPayload):
-    temp_files_path = "temp_files"
-    os.makedirs(temp_files_path, exist_ok=True)
-    temp_data_file_path = os.path.join(temp_files_path, 'temp_data.json')
-
+def run_fine_tuning(temp_file_path: str, result_file: str):
     try:
-        # Save file information to a temporary JSON file
-        with open(temp_data_file_path, 'w', encoding='utf-8') as f:
-            json.dump([{"ime": d.ime, "url": os.path.join(temp_files_path, d.ime)} for d in payload.datoteke], f)
+        # Run the fine-tuning process and get the job ID
+        job_id = main(temp_file_path)
         
-        logging.info(f"Saved temp data to {temp_data_file_path}")
-        logging.info(f"Current working directory: {os.getcwd()}")
-
-        # Ensure that environment variables are loaded correctly
-        openai_api_key = os.getenv('OPENAI_API_KEY')
-        if not openai_api_key:
-            raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set.")
+        # Wait for the fine-tuning process to complete and get the model ID
+        model_id = get_fine_tuned_model_id(job_id)
         
-        logging.info("Environment variable OPENAI_API_KEY loaded successfully.")
-
-        # Call the fine-tuning script
-        logging.info(f"Running finetuning.py with temp_data_file_path: {temp_data_file_path}")
-        result = subprocess.run(
-            ["python3", "finetuning.py", temp_data_file_path],
-            capture_output=True, text=True
-        )
-
-        logging.info(f"Subprocess completed with return code: {result.returncode}")
-        logging.debug(f"Subprocess stdout: {result.stdout}")
-        logging.debug(f"Subprocess stderr: {result.stderr}")
-
-        if result.returncode != 0:
-            logging.error(f"Fine-tuning script failed with stdout: {result.stdout} and stderr: {result.stderr}")
-            raise HTTPException(status_code=500, detail=f"Fine-tuning script failed with output: {result.stdout}")
-
-        # Parse the model ID from the script output (assuming it's printed as last line)
-        last_line = result.stdout.strip().split("\n")[-1]
-        model_id = last_line if last_line.startswith("model-") else None
-
-        if not model_id:
-            raise ValueError("Model ID not found in the script output.")
-
-        logging.info(f"Fine-tuned model ID: {model_id}")
-
-        return {"status": "success", "modelAdapterId": model_id}
-
+        # Write the model ID to the result file
+        with open(result_file, "w") as f:
+            f.write(model_id)
     except Exception as e:
-        logging.error(f"Error processing files: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing files: {str(e)}")
+        # Write the error message to the result file if something goes wrong
+        with open(result_file, "w") as f:
+            f.write(f"Error: {str(e)}")
+
+@app.post("/fine-tune")
+async def fine_tune(temp_file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()):
+    try:
+        # Save the uploaded file to the local file system
+        temp_file_path = temp_file.filename
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(temp_file.file, buffer)
+        
+        # Path for storing the result (model ID or error message)
+        result_file = f"{temp_file.filename}_result.txt"
+        
+        # Add the fine-tuning process to the background tasks
+        background_tasks.add_task(run_fine_tuning, temp_file_path, result_file)
+        
+        # Return the result file path so the client can check the status later
+        return JSONResponse(content={"status": "success", "message": "Fine-tuning started in the background.", "result_file": result_file})
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "message": str(e)})
+
+@app.get("/fine-tune-result")
+async def fine_tune_result(result_file: str):
+    try:
+        # Read the result from the file if it exists
+        if os.path.exists(result_file):
+            with open(result_file, "r") as f:
+                result = f.read()
+                # Check if the result contains an error message
+                if result.startswith("Error:"):
+                    return JSONResponse(content={"status": "error", "message": result})
+                else:
+                    return JSONResponse(content={"status": "success", "model_id": result})
+        else:
+            # If the result file doesn't exist yet, it means the process is still running
+            return JSONResponse(content={"status": "pending", "message": "Fine-tuning still in progress or no result found yet."})
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "message": str(e)})
+
+if __name__ == "__main__":
+    import uvicorn
+    # Start the FastAPI server
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,36 +1,26 @@
-
 import openai
 import time
 import os
-import os
 import sys
 import json
-import openai
 import requests
 import shutil
-
+from openai import OpenAI
 from PyPDF2 import PdfReader
 from dotenv import load_dotenv
- 
-load_dotenv()
 
+load_dotenv()
+client = OpenAI()
 # Get the API key from the environment
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Set the OpenAI API key
 openai.api_key = OPENAI_API_KEY
-import os
-import json
-import shutil
-
-from PyPDF2 import PdfReader
-import openai
+client.api_key = OPENAI_API_KEY
 
 def extract_text_from_txt(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         return f.read()
-
-
 
 def extract_text_from_pdf(file_path):
     reader = PdfReader(file_path)
@@ -56,10 +46,9 @@ def download_file(url, destination):
     
     return destination
 
-
-
 def upload_training_file(file_path):
     try:
+        # Correct method to upload a file for fine-tuning
         response = openai.files.create(
             file=open(file_path, "rb"),
             purpose="fine-tune"
@@ -69,17 +58,15 @@ def upload_training_file(file_path):
         return file_id
     except Exception as e:
         print(f"Error uploading file: {e}")
-        exit(1)
-
-
+        sys.exit(1)
 
 def create_fine_tuning_job(training_file_id):
     try:
-        response = openai.fine_tuning.create(
+        response = client.fine_tuning.jobs.create(
             training_file=training_file_id,
             model="gpt-3.5-turbo"
         )
-        job_id = response['id']
+        job_id = response.id
         print(f"Fine-tuning job created with ID: {job_id}")
         return job_id
     except Exception as e:
@@ -104,11 +91,6 @@ def get_fine_tuned_model_id(job_id):
     else:
         print("Fine-tuning job failed.")
         return None
-
-
-
-
-
 
 def main(temp_file_path):
     print("Fine-tuning script started")
@@ -136,7 +118,6 @@ def main(temp_file_path):
         else:
             print(f"Skipping unsupported file type: {ext}")
             
-
     # Check if there is any content to fine-tune
     if not vsebina_datotek:
         print("No valid files to process.")
@@ -183,9 +164,6 @@ def main(temp_file_path):
     job_id = create_fine_tuning_job(training_file_id)
     id_modela = get_fine_tuned_model_id(job_id)
     print(id_modela)
-
-
-
 
 if __name__ == "__main__":
     # Use a relative path to the temp.json file
