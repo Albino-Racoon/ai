@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from typing import List
 import logging
 import json
-
 import os
 
 # Set up FastAPI
@@ -33,6 +32,14 @@ async def process_files(payload: FilesPayload):
             json.dump([{"ime": d.ime, "url": os.path.join(temp_files_path, d.ime)} for d in payload.datoteke], f)
         
         logging.info(f"Saved temp data to {temp_data_file_path}")
+        logging.info(f"Current working directory: {os.getcwd()}")
+
+        # Ensure that environment variables are loaded correctly
+        openai_api_key = os.getenv('OPENAI_API_KEY')
+        if not openai_api_key:
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set.")
+        
+        logging.info("Environment variable OPENAI_API_KEY loaded successfully.")
 
         # Call the fine-tuning script
         result = subprocess.run(
@@ -52,6 +59,7 @@ async def process_files(payload: FilesPayload):
                 model_adapter_id = model_info.get('model_adapter_id')
                 if not model_adapter_id:
                     raise ValueError("model_adapter_id not found in model_info.json")
+                logging.info(f"Model adapter ID retrieved: {model_adapter_id}")
         except FileNotFoundError:
             logging.error(f"model_info.json file not found.")
             raise HTTPException(status_code=500, detail="model_info.json file not found.")
@@ -59,7 +67,9 @@ async def process_files(payload: FilesPayload):
             logging.error(f"Invalid data in model_info.json: {ve}")
             raise HTTPException(status_code=500, detail=str(ve))
 
+        return {"status": "success", "modelAdapterId": model_adapter_id}
 
     except Exception as e:
         logging.error(f"Error processing files: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing files: {str(e)}")
+
