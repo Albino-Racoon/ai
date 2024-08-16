@@ -73,17 +73,18 @@ def upload_training_file(file_path):
 
 
 
-def create_fine_tuning_job():
-    response = openai.fine_tuning.jobs.create(
-        training_file="file-05kqmFrqnoA263uLMUL01PRr", 
-        model="gpt-4o-mini-2024-07-18"
-    )
-    
-    job_id = response.id
-    print(f"Fine-tuning job created with ID: {job_id}")
-    
-
-    return job_id
+def create_fine_tuning_job(training_file_id):
+    try:
+        response = openai.fine_tuning.create(
+            training_file=training_file_id,
+            model="gpt-3.5-turbo"
+        )
+        job_id = response['id']
+        print(f"Fine-tuning job created with ID: {job_id}")
+        return job_id
+    except Exception as e:
+        print(f"Error creating fine-tuning job: {e}")
+        sys.exit(1)
 
 def get_fine_tuned_model_id(job_id):
     # This function would typically be called after some time when the job has completed.
@@ -134,7 +135,7 @@ def main(temp_file_path):
             vsebina_datotek.append(extract_text_from_pdf(file_path))
         else:
             print(f"Skipping unsupported file type: {ext}")
-            continue
+            
 
     # Check if there is any content to fine-tune
     if not vsebina_datotek:
@@ -179,7 +180,7 @@ def main(temp_file_path):
 
     training_file_path = "sample_data.jsonl"
     training_file_id = upload_training_file(training_file_path)
-    job_id = create_fine_tuning_job()
+    job_id = create_fine_tuning_job(training_file_id)
     id_modela = get_fine_tuned_model_id(job_id)
     print(id_modela)
 
@@ -187,4 +188,7 @@ def main(temp_file_path):
 
 
 if __name__ == "__main__":
-    main(r"C:\Users\jasar\Desktop\secret_deploy\ai\temp.json")
+    # Use a relative path to the temp.json file
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    temp_file_path = os.path.join(script_dir, 'temp.json')
+    main(temp_file_path)
