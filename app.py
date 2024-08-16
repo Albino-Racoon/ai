@@ -56,23 +56,16 @@ async def process_files(payload: FilesPayload):
             logging.error(f"Fine-tuning script failed with stdout: {result.stdout} and stderr: {result.stderr}")
             raise HTTPException(status_code=500, detail=f"Fine-tuning script failed with output: {result.stdout}")
 
-        # Read model_info.json for the model_adapter_id
-        model_info_file_path = 'model_info.json'
-        try:
-            with open(model_info_file_path, 'r', encoding='utf-8') as f:
-                model_info = json.load(f)
-                model_adapter_id = model_info.get('model_adapter_id')
-                if not model_adapter_id:
-                    raise ValueError("model_adapter_id not found in model_info.json")
-                logging.info(f"Model adapter ID retrieved: {model_adapter_id}")
-        except FileNotFoundError:
-            logging.error(f"model_info.json file not found.")
-            raise HTTPException(status_code=500, detail="model_info.json file not found.")
-        except ValueError as ve:
-            logging.error(f"Invalid data in model_info.json: {ve}")
-            raise HTTPException(status_code=500, detail=str(ve))
+        # Parse the model ID from the script output (assuming it's printed as last line)
+        last_line = result.stdout.strip().split("\n")[-1]
+        model_id = last_line if last_line.startswith("model-") else None
 
-        return {"status": "success", "modelAdapterId": model_adapter_id}
+        if not model_id:
+            raise ValueError("Model ID not found in the script output.")
+
+        logging.info(f"Fine-tuned model ID: {model_id}")
+
+        return {"status": "success", "modelAdapterId": model_id}
 
     except Exception as e:
         logging.error(f"Error processing files: {e}")
