@@ -5,7 +5,7 @@ import sys
 import json
 import requests
 import shutil
-from openai import OpenAI
+
 from PyPDF2 import PdfReader
 from dotenv import load_dotenv
 
