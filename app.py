@@ -42,10 +42,15 @@ async def process_files(payload: FilesPayload):
         logging.info("Environment variable OPENAI_API_KEY loaded successfully.")
 
         # Call the fine-tuning script
+        logging.info(f"Running finetuning.py with temp_data_file_path: {temp_data_file_path}")
         result = subprocess.run(
             ["python3", "finetuning.py", temp_data_file_path],
             capture_output=True, text=True
         )
+
+        logging.info(f"Subprocess completed with return code: {result.returncode}")
+        logging.debug(f"Subprocess stdout: {result.stdout}")
+        logging.debug(f"Subprocess stderr: {result.stderr}")
 
         if result.returncode != 0:
             logging.error(f"Fine-tuning script failed with stdout: {result.stdout} and stderr: {result.stderr}")
@@ -72,4 +77,3 @@ async def process_files(payload: FilesPayload):
     except Exception as e:
         logging.error(f"Error processing files: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing files: {str(e)}")
-
